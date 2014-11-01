@@ -14,6 +14,8 @@
         <link rel="stylesheet" href="styles/main.css">
         <link rel="stylesheet" href="styles/spinner.css">
         <!-- endbuild -->
+		<link rel="stylesheet" href="bower_components/intro.js/introjs.css">
+		<link rel="stylesheet" href="bower_components/intro.js/introjs-rtl.css">
 
         <!-- build:js scripts/vendor/modernizr.js -->
         <script src="bower_components/modernizr/modernizr.js"></script>
@@ -54,6 +56,7 @@
                         <li><a href="#">איך עובד התיוג?</a></li>
                       </ul>
                     </li>
+					<li><a href="#" onclick="javascript:startIntro(); return false;">הדרכה</a></li>
                     <li><a href="#">הצטרפו אלינו</a></li>
                     <li><a href="#">השבוע בתקציב</a></li>
                     <li>
@@ -128,7 +131,7 @@
         		    <div id="indepth-widget" class="2digits 4digits 6digits 8digits"></div>
                     <h2 id="list-title" class="4digits 6digits">רשימת השינויים</h2>
                     <div id="change-list" class="container 4digits 6digits"></div>
-                    <h2 id="support-list-title" class="6digits 8digits">תמיכות בתקנה זו</h2>
+                    <h2 id="support-list-title" class="6digits 8digits" data-step="2" data-intro="Step 2">תמיכות בתקנה זו</h2>
 
                     <table id="support-table" class="table table-hover table-striped 8digits">
                       <thead>
@@ -224,6 +227,7 @@
         <script src="bower_components/underscore/underscore.js"></script>
         <script src="bower_components/backbone/backbone.js"></script>
         <script src="bower_components/typeahead.js/dist/bloodhound.min.js"></script>
+        <script src="bower_components/intro.js/intro.js"></script>
         <!-- endbower -->
         <!-- endbuild -->
 
@@ -275,6 +279,32 @@
         <script src="bower_components/bootstrap/js/tab.js"></script-->
         <!-- endbuild -->
 
+ <script type="text/javascript">
+      function startIntro(){
+        var intro = introJs();
+          intro.setOptions({
+            steps: [
+              {
+                intro: "כאן מתחיל ה-intro"
+              },
+              {
+                element: document.querySelector('#vis-title'),
+                intro: "שינויים בתקציב: תיאור וכו'"
+              },
+              {
+                element: document.querySelector('#list-title'),
+                intro: ["כאן אפשר לראות את רשימת השינויים. משום מה זה לא תמיד מופיע במקום הנכון.",
+						"שורה שניה של ההסבר, לראות איך זה מתנהג עם ריבוי שורות."].join('\n'),
+              },
+              {
+                element: document.querySelectorAll('.transfer-list-explanation-title')[2],
+                intro: "דברי הסבר להעברה",
+              },
+            ]
+          });
 
+          intro.start();
+      }
+    </script>
 </body>
 </html>
