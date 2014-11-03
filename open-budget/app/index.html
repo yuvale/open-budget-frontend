@@ -1,4 +1,4 @@
-<!doctype html>
+`<!doctype html>
 <!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
 <!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
 <!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
@@ -13,9 +13,9 @@
         <!-- build:css(.tmp) styles/main.css -->
         <link rel="stylesheet" href="styles/main.css">
         <link rel="stylesheet" href="styles/spinner.css">
+        <link rel="stylesheet" href="bower_components/intro.js/introjs.css">
+        <link rel="stylesheet" href="bower_components/intro.js/introjs-rtl.css">
         <!-- endbuild -->
-		<link rel="stylesheet" href="bower_components/intro.js/introjs.css">
-		<link rel="stylesheet" href="bower_components/intro.js/introjs-rtl.css">
 
         <!-- build:js scripts/vendor/modernizr.js -->
         <script src="bower_components/modernizr/modernizr.js"></script>
@@ -56,7 +56,7 @@
                         <li><a href="#">איך עובד התיוג?</a></li>
                       </ul>
                     </li>
-					<li><a href="#" onclick="javascript:startIntro(); return false;">הדרכה</a></li>
+                    <li><a href="#" id="intro-link">הדרכה</a></li>
                     <li><a href="#">הצטרפו אלינו</a></li>
                     <li><a href="#">השבוע בתקציב</a></li>
                     <li>
@@ -127,8 +127,8 @@
 
                 <section id="vis">
                     <h2 id="vis-title">שינויים בתקציב</h2>
-            	    <div id="overview-widget" class="2digits 4digits 6digits 8digits"></div>
-        		    <div id="indepth-widget" class="2digits 4digits 6digits 8digits"></div>
+                    <div id="overview-widget" class="2digits 4digits 6digits 8digits"></div>
+                    <div id="indepth-widget" class="2digits 4digits 6digits 8digits"></div>
                     <h2 id="list-title" class="4digits 6digits">רשימת השינויים</h2>
                     <div id="change-list" class="container 4digits 6digits"></div>
                     <h2 id="support-list-title" class="6digits 8digits" data-step="2" data-intro="Step 2">תמיכות בתקנה זו</h2>
@@ -238,7 +238,7 @@
             e=o.createElement(i);r=o.getElementsByTagName(i)[0];
             e.src='//www.google-analytics.com/analytics.js';
             r.parentNode.insertBefore(e,r)}(window,document,'script','ga'));
-	    ga('create', 'UA-10203855-7', 'open-budget.org.il');
+            ga('create', 'UA-10203855-7', 'open-budget.org.il');
             /*ga('send','pageview');*/
         </script>
 
@@ -262,6 +262,7 @@
         <script src="scripts/searchbar.js"></script>
         <script src="scripts/subscribe.js"></script>
         <script src="scripts/hello.js"></script>
+        <script src="scripts/training.js"></script>
         <!-- endbuild -->
 
         <!-- build:js scripts/vendor/bootstrap.js -->
@@ -279,32 +280,5 @@
         <script src="bower_components/bootstrap/js/tab.js"></script-->
         <!-- endbuild -->
 
- <script type="text/javascript">
-      function startIntro(){
-        var intro = introJs();
-          intro.setOptions({
-            steps: [
-              {
-                intro: "כאן מתחיל ה-intro"
-              },
-              {
-                element: document.querySelector('#vis-title'),
-                intro: "שינויים בתקציב: תיאור וכו'"
-              },
-              {
-                element: document.querySelector('#list-title'),
-                intro: ["כאן אפשר לראות את רשימת השינויים. משום מה זה לא תמיד מופיע במקום הנכון.",
-						"שורה שניה של ההסבר, לראות איך זה מתנהג עם ריבוי שורות."].join('\n'),
-              },
-              {
-                element: document.querySelectorAll('.transfer-list-explanation-title')[2],
-                intro: "דברי הסבר להעברה",
-              },
-            ]
-          });
-
-          intro.start();
-      }
-    </script>
 </body>
 </html>
