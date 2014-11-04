@@ -7,7 +7,8 @@ class TrainingView extends Backbone.View
 
     startIntro: (event) ->
         event.preventDefault()
-        intro = introJs()
+
+        intro = @createIntroJsObject()
         intro.setOptions(
             steps: [
                 {
@@ -30,10 +31,18 @@ class TrainingView extends Backbone.View
                 }
             ]
         )
-
         intro.start()
+
+    createIntroJsObject: ->
+        intro = introJs()
+        intro.setOptions(
+            nextLabel: "הבא"
+            prevLabel: "הקודם"
+            doneLabel: "סיום"
+            skipLabel: "יציאה"
+        )
 
 $( ->
         console.log "initializing the training view"
-        window.supportList = new TrainingView({el: $("#intro-link"), model: window.pageModel});
+        window.trainingView = new TrainingView({el: $("#intro-link"), model: window.pageModel});
 )
