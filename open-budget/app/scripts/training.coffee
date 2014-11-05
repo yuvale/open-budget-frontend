@@ -4,11 +4,7 @@ class TrainingView extends Backbone.View
 
     initialize: ->
         # Check if we have the 'start training' parameter in the URL query part.
-        query = window.location.search
-        if query[0] == '?'
-            query = query.substring(1)
-        param_array = query.split('&')
-        startTraining = param_array.indexOf(@START_TRAINING_PARAMETER) != -1
+        startTraining = @isParamInUrlQuery(@START_TRAINING_PARAMETER)
 
         if not startTraining
             return
@@ -34,19 +30,29 @@ class TrainingView extends Backbone.View
             @startMainPageTraining()
         else
             # TODO: Set to DEFAULT_HOME?
-            hash = '#'
-            new_url = @buildTrainingUrl(window.location.href, hash)
-            window.location = new_url
+            newHash = '#'
+            window.location = @buildTrainingUrl(newHash)
+
+    isParamInUrlQuery: (param) ->
+        query = window.location.search
+        if query[0] == '?'
+            query = query.substring(1)
+        paramArray = query.split('&')
+        return paramArray.indexOf(param) != -1
 
     getHashKind: ->
         hash = window.location.hash.substring(1)
         kind = hash.split("/",1)[0]
         return kind
 
-    buildTrainingUrl: (url, hash) ->
-        url_up_to_hash = url.split('#', 1)[0]
-        new_url = url_up_to_hash + '?' + @START_TRAINING_PARAMETER + hash;
-        return new_url
+    buildTrainingUrl: (newHash) ->
+        addQueryParam = not @isParamInUrlQuery(@START_TRAINING_PARAMETER)
+        url = window.location.href
+        urlUpToHash = url.split('#', 1)[0]
+        newUrl = urlUpToHash +
+                 (if addQueryParam then '?' + @START_TRAINING_PARAMETER else '') +
+                 newHash
+        return newUrl
 
     startMainPageTraining: ->
         intro = @createIntroJsObject()
@@ -61,6 +67,10 @@ class TrainingView extends Backbone.View
                 }
             ]
         )
+        intro.oncomplete( =>
+            window.location = @buildTrainingUrl('#budget/008405/2014')
+        )
+
         intro.start()
 
     startBudgetPageTraining: ->
@@ -92,14 +102,16 @@ class TrainingView extends Backbone.View
     createIntroJsObject: ->
         intro = introJs()
         intro.setOptions(
-            nextLabel: "הבא"
-            prevLabel: "הקודם"
+            nextLabel: "הבא&larr;"
+            prevLabel: "הקודם&rarr;"
             doneLabel: "סיום"
             skipLabel: "יציאה"
+            exitOnOverlayClick: false
+            disableInteraction: false
         )
         return intro
 
 $( ->
         console.log "initializing the training view"
-        window.trainingView = new TrainingView({el: $("#intro-link"), model: window.pageModel});
+        window.trainingView = new TrainingView({el: $("#intro-link"), model: window.pageModel})
 )
