@@ -34,15 +34,8 @@ class TrainingView extends Backbone.View
             @startMainPageTraining()
         else
             # TODO: Set to DEFAULT_HOME?
-            window.location.hash = ''
-            # Stick the parameters before the hash part.
-            url = window.location.href
-            url_parts = url.split('#', 1)
-            if url_parts[1]
-                rest = '#' + url_parts[1]
-            else
-                rest = ''
-            new_url = url_parts[0] + '?' + @START_TRAINING_PARAMETER + rest
+            hash = '#'
+            new_url = @buildTrainingUrl(window.location.href, hash)
             window.location = new_url
 
     getHashKind: ->
@@ -50,7 +43,25 @@ class TrainingView extends Backbone.View
         kind = hash.split("/",1)[0]
         return kind
 
+    buildTrainingUrl: (url, hash) ->
+        url_up_to_hash = url.split('#', 1)[0]
+        new_url = url_up_to_hash + '?' + @START_TRAINING_PARAMETER + hash;
+        return new_url
+
     startMainPageTraining: ->
+        intro = @createIntroJsObject()
+        intro.setOptions(
+            steps: [
+                {
+                    intro: "כאן מתחילה ההדרכה של הדף הראשי."
+                }
+                {
+                    element: document.querySelector('g[data-code="002026"]')
+                    intro: "סעיף חינוך יסודי."
+                }
+            ]
+        )
+        intro.start()
 
     startBudgetPageTraining: ->
         intro = @createIntroJsObject()
