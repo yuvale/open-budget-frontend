@@ -1,115 +1,86 @@
 class TrainingView extends Backbone.View
 
-    START_TRAINING_PARAMETER: 'startTraining=1'
-
     initialize: ->
-        # Check if we have the 'start training' parameter in the URL query part.
-        startTraining = @isParamInUrlQuery(@START_TRAINING_PARAMETER)
-
-        if not startTraining
-            return
-
-        # Start the appropriate training according to the hash kind.
-        hashKind = @getHashKind()
-        if hashKind == "main"
-            @startMainPageTraining()
-        else if hashKind == "budget"
-            @startBudgetPageTraining()
+        @initTour()
 
     events:
         "click": "onTrainingButtonClick"
 
+    initTour: ->
+        mainPagePath = "#main//2014"
+
+        mainPageSteps = [
+            {
+                orphan: true
+                title: "שלום!"
+                content: "כאן מתחילה ההדרכה של הדף הראשי."
+            }
+            {
+                backdrop: false # Couldn't get it to work with svg.
+                element: 'circle#bubble_008405'
+                placement: "bottom"
+                title: "פה יש עיגול"
+                content: "סעיף מלוות פנים."
+            }
+            {
+                orphan: true
+                content: "כעת נעבור לדף של סעיף תקציבי. אנא המתינו..."
+                duration: 2000
+            }
+        ]
+        (step.path = mainPagePath) for step in mainPageSteps
+
+        budgetPageSteps = [
+            {
+                orphan: true
+                title: "שלום!"
+                content: "כאן מתחילה ההדרכה של דף סעיף."
+            }
+            {
+                element: "div.trans:eq(2)"
+                placement: "bottom"
+                title: "העברה"
+                content: "טקסט כלשהו."
+            }
+        ]
+        (step.path = "#budget/008405/2014") for step in budgetPageSteps
+
+        lastStep =
+            orphan: true
+            content: "וזה הכל לבינתיים!"
+            path: mainPagePath
+
+        allSteps = [].concat(mainPageSteps, budgetPageSteps, [lastStep])
+
+        tour = new Tour(
+            steps: allSteps
+            basePath: document.location.pathname
+            backdrop: true
+            backdropPadding: 5
+            template: '<div class="popover" role="tooltip">
+              <div class="arrow"></div>
+              <h3 class="popover-title"></h3>
+              <div class="popover-content"></div>
+              <div class="popover-navigation">
+                <div class="btn-group">
+                  <button class="btn btn-sm btn-default" data-role="prev">&laquo; הקודם</button>
+                  <button class="btn btn-sm btn-default" data-role="next">הבא &raquo;</button>
+                  <button class="btn btn-sm btn-default"
+                          data-role="pause-resume"
+                          data-pause-text="Pause"
+                          data-resume-text="Resume">Pause</button>
+                </div>
+                <button class="btn btn-sm btn-default" data-role="end">סיום</button>
+              </div>
+            </div>'
+        )
+        tour.init()
+        @tour = tour
+        return tour
+
     onTrainingButtonClick: (event) ->
         event.preventDefault()
-
-        # If we're on the main page, start the main page training.
-        # Otherwise set the URL to the default page, with a parameter telling
-        # to start the training.
-        hashKind = @getHashKind()
-        if hashKind == "main"
-            @startMainPageTraining()
-        else
-            # TODO: Set to DEFAULT_HOME?
-            newHash = '#'
-            window.location = @buildTrainingUrl(newHash)
-
-    isParamInUrlQuery: (param) ->
-        query = window.location.search
-        if query[0] == '?'
-            query = query.substring(1)
-        paramArray = query.split('&')
-        return paramArray.indexOf(param) != -1
-
-    getHashKind: ->
-        hash = window.location.hash.substring(1)
-        kind = hash.split("/",1)[0]
-        return kind
-
-    buildTrainingUrl: (newHash) ->
-        addQueryParam = not @isParamInUrlQuery(@START_TRAINING_PARAMETER)
-        url = window.location.href
-        urlUpToHash = url.split('#', 1)[0]
-        newUrl = urlUpToHash +
-                 (if addQueryParam then '?' + @START_TRAINING_PARAMETER else '') +
-                 newHash
-        return newUrl
-
-    startMainPageTraining: ->
-        intro = @createIntroJsObject()
-        intro.setOptions(
-            steps: [
-                {
-                    intro: "כאן מתחילה ההדרכה של הדף הראשי."
-                }
-                {
-                    element: document.querySelector('g[data-code="002026"]')
-                    intro: "סעיף חינוך יסודי."
-                }
-            ]
-        )
-        intro.oncomplete( =>
-            window.location = @buildTrainingUrl('#budget/008405/2014')
-        )
-
-        intro.start()
-
-    startBudgetPageTraining: ->
-        intro = @createIntroJsObject()
-        intro.setOptions(
-            steps: [
-                {
-                    intro: "כאן מתחיל ה-intro"
-                }
-                {
-                    element: document.querySelector("#vis-title")
-                    intro: "שינויים בתקציב: תיאור וכו'"
-                }
-                {
-                    element: document.querySelector("#list-title")
-                    intro: [
-                      "כאן אפשר לראות את רשימת השינויים. משום מה זה לא תמיד מופיע במקום הנכון."
-                      "שורה שניה של ההסבר, לראות איך זה מתנהג עם ריבוי שורות."
-                      ].join("\n")
-                }
-                {
-                    element: document.querySelectorAll(".transfer-list-explanation-title")[2]
-                    intro: "דברי הסבר להעברה"
-                }
-            ]
-        )
-        intro.start()
-
-    createIntroJsObject: ->
-        intro = introJs()
-        intro.setOptions(
-            nextLabel: "הבא&larr;"
-            prevLabel: "&rarr;הקודם"
-            doneLabel: "סיום"
-            skipLabel: "יציאה"
-            exitOnOverlayClick: false
-            showStepNumbers: false
-        )
-        return intro
+        @tour.restart()
 
 $( ->
         console.log "initializing the training view"

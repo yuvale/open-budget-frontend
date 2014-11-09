@@ -12,7 +12,7 @@
     "typeahead.js": "~0.10.5",
     "hogan": "~3.0.0",
     "d3-tip": "~0.6.4",
-    "intro.js": "https://github.com/yuvale/intro.js.git#fixes"
+    "bootstrap-tour": "~0.10.1"
   },
   "devDependencies": {}
 }
