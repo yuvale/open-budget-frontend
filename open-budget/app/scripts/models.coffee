@@ -150,7 +150,6 @@ class BudgetApproval extends Backbone.Model
         effect_timestamp: null
         end_timestamp: null
         link: null
-        participants: null
 
     setTimestamps: ->
         @set 'approval_timestamp', dateToTimestamp(@get 'approval_date')
@@ -274,6 +273,37 @@ class BudgetHistory extends Backbone.Collection
 
         getLast: -> @models[@models.length-1]
 
+class Participant extends Backbone.Model
+
+        defaults:
+                kind: ""
+                name: null
+                party: null
+                photo_url: "data:image/svg+xml;charset=utf-8;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij4NCiAgICA8cGF0aCBkPSJNMTIgMmMtNS41MiAwLTEwIDQuNDgtMTAgMTBzNC40OCAxMCAxMCAxMCAxMC00LjQ4IDEwLTEwLTQuNDgtMTAtMTAtMTB6bTAgM2MxLjY2IDAgMyAxLjM0IDMgM3MtMS4zNCAzLTMgMy0zLTEuMzQtMy0zIDEuMzQtMyAzLTN6bTAgMTQuMmMtMi41IDAtNC43MS0xLjI4LTYtMy4yMi4wMy0xLjk5IDQtMy4wOCA2LTMuMDggMS45OSAwIDUuOTcgMS4wOSA2IDMuMDgtMS4yOSAxLjk0LTMuNSAzLjIyLTYgMy4yMnoiLz4NCiAgICA8cGF0aCBkPSJNMCAwaDI0djI0aC0yNHoiIGZpbGw9Im5vbmUiLz4NCjwvc3ZnPg=="
+                start_date: null
+                end_date: null
+                title: null
+                start_timestamp: null
+                end_timestamp: null
+
+        setTimestamps: ->
+            @set 'start_timestamp', dateToTimestamp(@get 'start_date')
+            if (@get 'end_date')?
+                @set 'end_timestamp', dateToTimestamp(@get 'end_date')
+            else
+                @set 'end_timestamp', window.combinedHistory.maxTime
+
+class Participants extends Backbone.Collection
+        model: Participant
+
+        initialize: (models, options) ->
+            @pageModel = options.pageModel
+            @code = options.code.substring(0,4)
+            @fetch(dataType: window.pageModel.get('dataType'), reset: true)
+
+        url: ->
+            "#{pageModel.get('baseURL')}/api/participants/#{@code}"
+
 class ReadyAggregator
 
     constructor: (event) ->
@@ -337,32 +367,44 @@ class PageModel extends Backbone.Model
                                       () =>
                                           @set('currentItem', @budgetHistory.getLast())
 
-                    @readyEvents.push new ReadyAggregator("ready-budget-history")
+                    @readyEvents.push new ReadyAggregator("ready-budget-history-pre")
                                                 .addCollection(@changeGroups)
                                                 .addCollection(@budgetHistory)
                                                 .addCollection(@budgetApprovals)
 
                     if digits >= 6
-                        @supports = new TakanaSupports([], pageModel: @)
-                        @readyEvents.push new ReadyAggregator("ready-supports")
-                                                    .addCollection(@supports)
+                        @on('ready-budget-history', ->
+                            @supports = new TakanaSupports([], pageModel: @)
+                            @readyEvents.push new ReadyAggregator("ready-supports")
+                                                        .addCollection(@supports)
+                        )
                     readyBreadcrumbs = new ReadyAggregator("ready-breadcrumbs")
+                                                    .addCollection(@budgetHistory)
                     @readyEvents.push readyBreadcrumbs
                     @breadcrumbs = []
-                    for i in [1..(budgetCode.length/2)]
+                    maxlen=(budgetCode.length/2)-1
+                    for i in [1..maxlen]
                         main = null
                         kids = null
 
                         if i < 5
-                            main = new BudgetItem(year: @get('year'), code: budgetCode.slice(0,(i+1)*2), pageModel: @)
-                            main.do_fetch()
-                            kids = new BudgetItemKids([], year: @get('year'), code: budgetCode.slice(0,i*2), pageModel: @)
+                            code = budgetCode.slice(0,(i+1)*2)
+                            main = new BudgetItem(year: @get('year'), code: code, pageModel: @)
                             readyBreadcrumbs.addModel(main)
+                            main.do_fetch()
+                            kids = new BudgetItemKids([], year: @get('year'), code: code, pageModel: @)
                             readyBreadcrumbs.addCollection(kids)
                             @breadcrumbs.push
                                 main: main
                                 kids: kids
-                                last: i == budgetCode.length/2
+                                last: i == maxlen
+
+                    @on('ready-budget-history', ->
+                        @participants = new Participants([], code: budgetCode, pageModel: @)
+                        readyParticipants = new ReadyAggregator('ready-participants')
+                                                        .addCollection(@participants)
+                        @readyEvents.push readyParticipants
+                    )
 
                 @on 'change:changeGroupId', ->
                     @changeGroup = new ChangeGroup(pageModel: @)

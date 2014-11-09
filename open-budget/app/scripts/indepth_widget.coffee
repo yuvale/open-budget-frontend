@@ -15,7 +15,6 @@ class IndepthWidget extends Backbone.View
                 @svg = d3.select(@el).append('svg')
                         .attr('width','100%')
                         .attr('height','100%')
-                @svg.append('defs').html('<pattern id="backgroundPattern" patternUnits="userSpaceOnUse" width="4" height="4"><path d="M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2" stroke-width="1" /></pattern>')
 
                 @chart = @svg.append('g').attr('class','chart')
                 @bars = @svg.append('g').attr('class','bar')
@@ -35,12 +34,6 @@ class IndepthWidget extends Backbone.View
                                     selection[1] -= dx
                                     that.pageModel.set('selection', selection)
                 )
-                # @participant_tip = d3.tip()
-                #                .attr('class', 'd3-tip')
-                #                .direction("sw")
-                #                .offset((d) => [70,50])
-                #                .html((d) -> JST.widget_participant_tooltip_placeholder(d))
-                # @chart.call( @participant_tip )
                 @change_tip = d3.tip()
                                .attr('class', 'd3-tip')
                                #.offset((d) => [-(@timeScale( d.get('width')/2 ) - @timeScale(0)), @valueScale(0) - @valueScale( d.get('value') )])
@@ -52,19 +45,10 @@ class IndepthWidget extends Backbone.View
                 @showTip = (d,i) ->
                         that.change_tip.show(d)
                         d3.select(this).style('opacity',0.1)
-                        # that.selected_tooltip = d
-                        # window.setTimeout =>
-                        #     if d == that.selected_tooltip
-                        #         participants = d.getParticipants()
-                        #         participants.on 'reset', ->
-                        #             models = _.map( participants.models, (x) -> x.toJSON() )
-                        #             $(".participants-tooltip div[data-timestamp=#{d.get('timestamp')}]").html(JST.widget_participant_tooltip({ participants: models }))
-                        #    ,
-                        #     250
-                        # that.participant_tip.show(d)
                         selector = '.tipFocus'
                         s = that.chart.selectAll(selector)[0][i]  #.data([d])
                         d3.select(s).style('display','block')
+                        true
                 @hideTip = (d,i) ->
                         d3.select(this).style('opacity',0)
                         that.change_tip.hide(d)
@@ -72,13 +56,40 @@ class IndepthWidget extends Backbone.View
                         selector = '.tipFocus'
                         s = that.chart.selectAll(selector)[0][i]  #.data([d])
                         d3.select(s).style('display','none')
+                        true
+                @showGuideline = ->
+                        mouse = d3.mouse(this)
+                        that.chart.selectAll('.guideline')
+                            .attr('x1',mouse[0])
+                            .attr('x2',mouse[0])
+                            .style('visibility','visible')
+                        date = that.baseTimeScale.invert(mouse[0])
+                        date = new Date(date)
+                        ofs = $(that.svg[0]).offset()
+                        d3.select("#indepth-guideline-date")
+                            .html(date.getDate()+"/"+(date.getMonth()+1)+"/"+date.getFullYear())
+                            .style('display','block')
+                            .style('left', d3.event.pageX+"px")
+                            .style('top',ofs.top+that.valueScale(0)+"px")
+                        true
+                @hideGuideline = ->
+                        that.chart.selectAll('.guideline')
+                            .style('visibility','hidden')
+                        d3.select("#indepth-guideline-date")
+                            .html("")
+                            .style('display','none')
+                        true
+
+                @participants = []
+                @titles = []
+                @titleToIndex = {}
 
         render__chart_bg: ->
+
                 @chart.selectAll('.background').data([1])
                         .enter()
                                 .append('rect')
                                 .attr("class", "background")
-                                .style("fill", "url(#backgroundPattern)")
                                 .style("stroke", null)
 
                 @chart.selectAll('.background').data([1])
@@ -116,6 +127,23 @@ class IndepthWidget extends Backbone.View
                         .style("font-size", 8)
                         .style("text-anchor", "end")
                         .text((d) => @formatNumber( @minValue + d.index*@tickValue ) )
+
+                # Guideline
+                @chart.selectAll('.guideline').data([1])
+                        .enter()
+                            .append('line')
+                            .attr('class','guideline')
+                            .attr('y1',0)
+                            .attr('y2',@valueScale(0)+CHANGE_LINE_HANG_LENGTH)
+                            .style('stroke','#000')
+
+                d3.select('body').selectAll('#indepth-guideline-date').data([1])
+                        .enter()
+                            .append('div')
+                            .attr('id','indepth-guideline-date')
+
+                @svg.on('mousemove',@showGuideline)
+                @svg.on('mouseout',@hideGuideline)
 
         render__year_starts: ->
                 yearstartModels = _.filter(@model.models, (x)->x.get('kind')=='yearstart')
@@ -210,24 +238,6 @@ class IndepthWidget extends Backbone.View
                     .append('line')
                             .attr('class', 'changeBar')
                             .datum( (d) => d)
-            # tipLine = newGraphParts
-            #             .append('g')
-            #                 .attr('class','tipFocus')
-            #                 .datum( (d) => d)
-            #
-            # tipLine.append('circle')
-            #                 .style("stroke-width",2)
-            #                 .style("stroke-color","#fff")
-            # tipLine.append('path')
-            #                 .style("stroke-width",2)
-            #                 .style("stroke-color","#fff")
-            #                 .style("fill","none")
-            # newGraphParts
-            #         .append('rect')
-            #                 .attr('class', 'changeLine-background')
-            #                 .datum( (d) => d)
-            #                 .style("stroke-width",0)
-            #                 .style("opacity",0)
             newGraphParts
                     .append('line')
                             .attr('class', 'changeLine')
@@ -257,16 +267,6 @@ class IndepthWidget extends Backbone.View
                     .attr("x2", (d) => @timeScale( d.get('timestamp') + d.get('width') ) )
                     .attr("y1", (d) => @valueScale( d.get('value') ) )
                     .attr("y2", (d) => @valueScale( d.get('value') ) )
-
-            # @chart.selectAll('.changeLine-background').data(changeModels)
-            #         .attr("class", (d) => "changeLine-background")
-            #         .attr("x", (d) => @timeScale( d.get('timestamp') ) )
-            #         .attr("width", (d) => @timeScale( d.get('width') ) - @timeScale( 0 ))
-            #         .attr("y", (d) => @valueScale( d.get('value') ) )
-            #         .attr("height", (d) => CHANGE_LINE_HANG_LENGTH + @valueScale(0) - @valueScale( d.get('value') ) )
-            #         .on('mouseover', @showTip)
-            #         .on('mouseout', @hideTip)
-
             @chart.selectAll('.changeLine').data(changeModels)
                     .attr("class", (d) => if d.get('diff_value') > 0 then "changeLine increase" else "changeLine reduce")
                     .attr("x1", (d) => @timeScale( d.get('timestamp') ) )
@@ -285,29 +285,11 @@ class IndepthWidget extends Backbone.View
                     .attr("y2", (d) => @valueScale( d.get('value') )-1*(if d.get('diff_value') > 0 then 1 else -1) )
                     .attr('stroke-width',5)
 
-            # tipLine = @chart.selectAll('.tipFocus').data(changeModels)
-            # tipLine.selectAll('circle')
-            #       .attr("class", (d) => dbl = d.get('diff_baseline'); subkind = d.get('subkind') ; if dbl > 0 then "increase #{subkind}" else if dbl < 0 then "reduce #{subkind}" else subkind)
-            #       .attr("cx", (d) => @timeScale( d.get('timestamp') ) )
-            #       .attr("cy", (d) => @valueScale( d.get('value') ) )
-            #       .attr("r", 10 )
-            #       .attr("fill", "none" )
-            #
-            # tipLine.selectAll('path')
-            #       .attr("class", (d) => dbl = d.get('diff_baseline'); subkind = d.get('subkind') ; if dbl > 0 then "increase #{subkind}" else if dbl < 0 then "reduce #{subkind}" else subkind)
-            #       .attr("d", (d) => "M#{@timeScale( d.get('timestamp') )},#{@valueScale( d.get('value') )} c0,#{-TOOLTIP_SIZE*2/3},#{TOOLTIP_SIZE},#{-TOOLTIP_SIZE/3},#{TOOLTIP_SIZE},-#{TOOLTIP_SIZE}" )
-
         render__used_budgets: ->
             usedModels = _.filter(@model.models, (x)->x.get('kind')=='used')
             newGraphParts = @chart.selectAll('.graphPartUsed').data(usedModels)
                     .enter().append("g")
                     .attr('class','graphPartUsed')
-            # newGraphParts
-            #         .append('rect')
-            #                 .attr('class', 'usedBackground')
-            #                 .style("stroke-width",0)
-            #                 .style("opacity",0)
-            #                 .datum( (d) => d)
             newGraphParts
                     .append('line')
                             .attr('class', 'usedBar')
@@ -324,31 +306,6 @@ class IndepthWidget extends Backbone.View
                             .text((d) => d.get('date').getFullYear())
                             .style("text-anchor", "start")
                             .datum( (d) => d)
-
-            # tipLine = newGraphParts
-            #             .append('g')
-            #                 .attr('class', 'used tipFocus')
-            #                 .datum( (d) => d)
-            #
-            # tipLine.append('circle')
-            #                 .style("stroke-width",2)
-            #                 .style("stroke-color","#fff")
-            #                 .attr("r", 10 )
-            #                 .attr("fill", "none" )
-            #
-            # tipLine.append('path')
-            #                 .style("stroke-width",2)
-            #                 .style("stroke-color","#fff")
-            #                 .style("fill","none")
-
-            # @chart.selectAll('.usedBackground').data(usedModels)
-            #         .attr("x", (d) => @timeScale( d.get('timestamp') ) )
-            #         .attr("y", (d) => @valueScale( d.get('value') ) )
-            #         .attr("width", (d) => @timeScale( d.get('timestamp') + d.get('width')) - @timeScale(d.get('timestamp')) )
-            #         .attr("height", (d) => @valueScale( @minValue ) - @valueScale( d.get('value') ) )
-            #         .on('mouseover', @showTip)
-            #         .on('mouseout', @hideTip)
-
             @chart.selectAll('.usedBar').data(usedModels)
                     .attr("x1", (d) => @timeScale( d.get('timestamp') - 9*d.get('width') ) ) # probably an ugly hack
                     .attr("x2", (d) => @timeScale( d.get('timestamp') + d.get('width') ) )
@@ -363,13 +320,6 @@ class IndepthWidget extends Backbone.View
             @chart.selectAll('.usedLabel').data(usedModels)
                     .attr("x", (d) => @timeScale( d.get('timestamp') ) )
                     .attr("y", (d) => @valueScale( @minValue ) + YEAR_LINE_HANG_LENGTH )
-            # tipLine = @chart.selectAll('.used.tipFocus').data(usedModels)
-            # tipLine.selectAll('path')
-            #       .attr("class", (d) => dbl = d.get('diff_baseline'); subkind = d.get('subkind') ; if dbl > 0 then "increase #{subkind}" else if dbl < 0 then "reduce #{subkind}" else subkind)
-            #       .attr("d", (d) => "M#{@timeScale( d.get('timestamp') )},#{@valueScale( d.get('value') )} c0,#{-TOOLTIP_SIZE*2/3},#{TOOLTIP_SIZE},#{-TOOLTIP_SIZE/3},#{TOOLTIP_SIZE},-#{TOOLTIP_SIZE}" )
-            # tipLine.selectAll('circle')
-            #       .attr("cx", (d) => @timeScale( d.get('timestamp')) )
-            #       .attr("cy", (d) => @valueScale( d.get('value') ) )
 
         render__tooltip_hooks: ->
                 allModels = _.filter(@model.models, (m)->m.get("kind")=="used" or (m.get("kind")=="change" and m.get("src")=="changeline") or m.get("kind")=="approved")
@@ -388,8 +338,62 @@ class IndepthWidget extends Backbone.View
                         .attr("y", 0 )
                         .attr("width", (d) => @timeScale( d.get('timestamp') + d.get('width')) - @timeScale(d.get('timestamp')) )
                         .attr("height", @maxHeight )
-                        .on('mouseover', @showTip)
-                        .on('mouseout', @hideTip)
+                        .on('mouseenter', @showTip)
+                        .on('mouseleave', @hideTip)
+
+        render__timeline_titles: ->
+                @titleIndexScale = (title) -> TOP_PART_SIZE + YEAR_LINE_HANG_LENGTH + (@titleToIndex[title]+1)*32
+                @chart.selectAll('.timelineTitle').data(@titles)
+                        .enter()
+                        .append("text")
+                        .attr('class','timelineTitle')
+                        .text((d)->d)
+                        .attr('x',@maxWidth-8)
+                        .attr('y',(d) => @titleIndexScale(d)+4 )
+                        #.style("text-anchor", "end")
+
+        render__timeline_terms: ->
+                newGroups = @chart.selectAll('.timelineTerm').data(@participants)
+                        .enter()
+                        .append('g')
+                        .attr('class','timelineTerm')
+                newGroups.append('line')
+                        .attr('class','termBreadth')
+                newGroups.append('line')
+                        # .style('stroke','#000')
+                        .attr('class','termStart')
+                groups = @chart.selectAll('.timelineTerm').data(@participants)
+                groups.selectAll('.termBreadth')
+                        .attr('x1', (d)=> @timeScale( d.get('start_timestamp') ))
+                        .attr('x2', (d)=> @timeScale( d.get('end_timestamp') ))
+                        .attr('y1', (d)=> @titleIndexScale(d.get('title')) )
+                        .attr('y2', (d)=> @titleIndexScale(d.get('title')) )
+                groups.selectAll('.termStart')
+                        .attr('x1', (d)=> @timeScale( d.get('end_timestamp') ))
+                        .attr('x2', (d)=> @timeScale( d.get('end_timestamp') ))
+                        .attr('y1', (d)=> @titleIndexScale(d.get('title')) )
+                        .attr('y2', (d)=> @titleIndexScale(d.get('title'))+10 )
+                newTumbnails = d3.select('#participantThumbnails')
+                                 .selectAll('.participantThumbnail')
+                                 .data(@participants)
+                                 .enter()
+                divs = newTumbnails.append("div")
+                                .attr('class','participantThumbnail')
+                name = (d) ->
+                    ret = d.get('name')
+                    if d.get('full_title')?
+                        if d.get('full_title') != d.get('title')
+                            ret += " - "+d.get('full_title')
+                    ret
+                divs.append("div")
+                        .html(name)
+                divs.append("img")
+                        .attr('src', (d)=> d.get('photo_url'))
+                divs = d3.select('#participantThumbnails')
+                         .selectAll('.participantThumbnail')
+                         .data(@participants)
+                         .style("left", (d)=>@timeScale( d.get('start_timestamp')) + "px")
+                         .style("top", (d)=>(@titleIndexScale(d.get('title')) - 240) + "px")
 
         render: ->
                 @svg.call(@drag)
@@ -430,6 +434,8 @@ class IndepthWidget extends Backbone.View
                 @render__change_items()
                 @render__used_budgets()
                 @render__tooltip_hooks()
+                @render__timeline_terms()
+                @render__timeline_titles()
 
         formatNumber: (n) ->
                 rx=  /(\d+)(\d{3})/
@@ -453,11 +459,28 @@ class IndepthWidget extends Backbone.View
                 @tickValue = (i40*scale)/(TICKS*PARTS)
                 @labelValue = i40labelMult * @tickValue
 
-                @minValue = 0 # Math.floor(@model.minValue / @tickValue) * @tickValue
+                @minValue = 0 #  Math.floor(@model.minValue / @tickValue) * @tickValue
                 @maxValue = @minValue + TICKS * @tickValue
+
+        setParticipants: ( participants ) ->
+            title = null
+            @titles = []
+            for participant in participants
+                participant.setTimestamps()
+                if participant.get("title") != title
+                    title = participant.get("title")
+                    @titleToIndex[title] = @titles.length
+                    @titles.push title
+            @participants = participants #_.groupBy(participants, (x) -> x.get('title') )
 
 
 $( ->
         console.log "indepth_widget"
-        window.indepthWidget = new IndepthWidget({el: $("#indepth-widget"),model: window.combinedHistory});
+        indepthWidget = new IndepthWidget({el: $("#indepth-widget"),model: window.combinedHistory});
+        window.pageModel.on 'ready-budget-history', ->
+            indepthWidget.render()
+        window.pageModel.on 'ready-participants', ->
+            indepthWidget.setParticipants( window.pageModel.participants.models )
+            indepthWidget.render()
+        window.indepthWidget = indepthWidget
 )
