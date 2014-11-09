@@ -103,11 +103,11 @@ class TrainingView extends Backbone.View
         intro = introJs()
         intro.setOptions(
             nextLabel: "הבא&larr;"
-            prevLabel: "הקודם&rarr;"
+            prevLabel: "&rarr;הקודם"
             doneLabel: "סיום"
             skipLabel: "יציאה"
             exitOnOverlayClick: false
-            disableInteraction: false
+            showStepNumbers: false
         )
         return intro
 
