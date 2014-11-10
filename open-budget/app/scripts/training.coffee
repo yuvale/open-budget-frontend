@@ -1,59 +1,20 @@
 class TrainingView extends Backbone.View
 
     initialize: ->
-        @initTour()
+        @loadTour()
 
     events:
         "click": "onTrainingButtonClick"
 
-    initTour: ->
-        mainPagePath = "#main//2014"
+    loadTour: ->
+        $.get("training_steps.html", (data) =>
+            steps = @html_to_steps(data)
+            @initTour(steps)
+        )
 
-        mainPageSteps = [
-            {
-                orphan: true
-                title: "שלום!"
-                content: "כאן מתחילה ההדרכה של הדף הראשי."
-            }
-            {
-                backdrop: false # Couldn't get it to work with svg.
-                element: 'circle#bubble_008405'
-                placement: "bottom"
-                title: "פה יש עיגול"
-                content: "סעיף מלוות פנים."
-            }
-            {
-                orphan: true
-                content: "כעת נעבור לדף של סעיף תקציבי. אנא המתינו..."
-                duration: 2000
-            }
-        ]
-        (step.path = mainPagePath) for step in mainPageSteps
-
-        budgetPageSteps = [
-            {
-                orphan: true
-                title: "שלום!"
-                content: "כאן מתחילה ההדרכה של דף סעיף."
-            }
-            {
-                element: "div.trans:eq(2)"
-                placement: "bottom"
-                title: "העברה"
-                content: "טקסט כלשהו."
-            }
-        ]
-        (step.path = "#budget/008405/2014") for step in budgetPageSteps
-
-        lastStep =
-            orphan: true
-            content: "וזה הכל לבינתיים!"
-            path: mainPagePath
-
-        allSteps = [].concat(mainPageSteps, budgetPageSteps, [lastStep])
-
+    initTour: (steps) ->
         tour = new Tour(
-            steps: allSteps
+            steps: steps
             basePath: document.location.pathname
             backdrop: true
             backdropPadding: 5
@@ -77,6 +38,45 @@ class TrainingView extends Backbone.View
         tour.init()
         @tour = tour
         return tour
+
+    html_to_steps: (html_text) ->
+        div = $('<div></div>').html(html_text)
+        rows = div.find('tbody tr')
+
+        # Row 0 is the header row.
+        header_row = $(rows[0])
+        field_names = ($(td).text() for td in header_row.find('td'))
+
+        # Row 1 is the separator, skip it.
+        rows = rows[2..]
+
+        row_to_step = (row) ->
+            values = ($.trim(td.innerHTML) for td in $(row).find('td'))
+            values = ((if v is '' then undefined else v) for v in values)
+
+            dict = {}
+            for value, i in values
+                field_name = field_names[i]
+                dict[field_name] = value
+
+            if not dict.path?
+                return null
+
+            step =
+                title: dict.title
+                content: dict.content
+                path: dict.path
+                element: dict.element_selector
+                orphan: if not dict.element_selector? then true else undefined
+                placement: dict.tooltip_placement
+                duration: if dict.duration_ms? then parseInt(dict.duration_ms, 10) else undefined
+                backdrop: dict.disable_backdrop != 'true'
+
+        steps = []
+        for row in rows
+            step = row_to_step(row)
+            steps.push(step) if step != null
+        return steps
 
     onTrainingButtonClick: (event) ->
         event.preventDefault()
