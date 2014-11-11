@@ -7,9 +7,13 @@ class TrainingView extends Backbone.View
         "click": "onTrainingButtonClick"
 
     loadTour: ->
-        $.get("training_steps.html", (data) =>
-            steps = @html_to_steps(data)
+        url = "https://spreadsheets.google.com/feeds/list/1X_E0ut1bSG511lYJwsvFYjKonwqzVmkQNM0SCS2USnE/od6/public/values?alt=json-in-script&callback=?"
+        $.getJSON(url, (data) =>
+            steps = @sheet_to_steps(data)
             @initTour(steps)
+        )
+        .fail(() ->
+            console.log("Error loading training steps from ${url}.")
         )
 
     initTour: (steps) ->
@@ -39,47 +43,47 @@ class TrainingView extends Backbone.View
         @tour = tour
         return tour
 
-    html_to_steps: (html_text) ->
-        div = $('<div></div>').html(html_text)
-        rows = div.find('tbody tr')
+    sheet_to_steps: (root) ->
+        is_blank = (text) ->
+            return text? and $.trim(text) == ''
 
-        # Row 0 is the header row.
-        header_row = $(rows[0])
-        field_names = ($(td).text() for td in header_row.find('td'))
+        newline_to_br = (text) ->
+            if text? then text.replace(/\n/g, "<br />") else undefined
 
-        # Row 1 is the separator, skip it.
-        rows = rows[2..]
-
-        row_to_step = (row) ->
-            values = ($.trim(td.innerHTML) for td in $(row).find('td'))
-            values = ((if v is '' then undefined else v) for v in values)
-
+        entry_to_step = (entry) ->
+            # Rename 'gsx$<field>' keys to '<field>', ignore blank values.
             dict = {}
-            for value, i in values
-                field_name = field_names[i]
-                dict[field_name] = value
+            for own key, value of entry
+                if key.indexOf('gsx$') == 0
+                    value = value.$t
+                    dict[key[4..]] = if is_blank(value) then undefined else value
 
             if not dict.path?
                 return null
 
+            # Create the Bootstrap Tour step object.
             step =
-                title: dict.title
-                content: dict.content
+                title: newline_to_br(dict.title)
+                content: newline_to_br(dict.content)
                 path: dict.path
-                element: dict.element_selector
-                orphan: if not dict.element_selector? then true else undefined
-                placement: dict.tooltip_placement
-                duration: if dict.duration_ms? then parseInt(dict.duration_ms, 10) else undefined
-                backdrop: dict.disable_backdrop != 'true'
+                element: dict.elementselector
+                orphan: if not dict.elementselector? then true else undefined
+                placement: dict.tooltipplacement
+                duration: if dict.durationms? then parseInt(dict.durationms, 10) else undefined
+                backdrop: dict.disablebackdrop != 'true'
 
+        entries = root.feed.entry
         steps = []
-        for row in rows
-            step = row_to_step(row)
+        for entry in entries
+            step = entry_to_step(entry)
             steps.push(step) if step != null
         return steps
 
     onTrainingButtonClick: (event) ->
         event.preventDefault()
+        if not @tour?
+            # The tour wasn't initialized (due to loading failure).
+            return
         @tour.restart()
 
 $( ->
